@@ -9,7 +9,7 @@ name: AI News Ingestion
 # Secrets) or change the cron below to '0 */2 * * *' (every 2 hours).
 on:
   schedule:
-    - cron: '0 * * * *' # top of every hour (UTC)
+    - cron: '*/15 * * * *' # every 15 min (public repo = unlimited Actions minutes)
   workflow_dispatch: {} # allow manual runs from the Actions tab
 
 concurrency:
@@ -42,4 +42,6 @@ jobs:
       # small batch of pending items (paced to stay under free-tier LLM limits).
       - run: npm run migrate
       - run: npm run ingest
-      - run: npm run enrich -- 20
+      # Small, paced batch — self-limiting (no-op once the backlog is drained),
+      # keeps the run within Gemini's free-tier limits.
+      - run: npm run enrich -- 8
