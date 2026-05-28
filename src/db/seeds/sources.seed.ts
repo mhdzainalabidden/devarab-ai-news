@@ -12,6 +12,14 @@ const GENERIC: HtmlFetchConfig = {
   contentSelector: 'p',
 };
 
+// crawl_interval_minutes tiers (the cron runs every 15 min; this gates how often
+// each source is actually re-fetched, which is the real detection-speed lever):
+//   Tier 1 (priority <=15, top vendors):        30 min
+//   Tier 2 (priority 16-25):                    45 min
+//   Tier 3 (priority 26-35):                    90 min
+//   Tier 4 (priority >=36, low/rate-limited):  120 min
+// Lowering these is quota-safe: the LLM only runs on genuinely new (deduped) items.
+
 /**
  * Seed catalog of official / primary sources.
  *
@@ -31,7 +39,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'rss',
     official_domain: 'openai.com',
     priority: 10,
-    crawl_interval_minutes: 60,
+    crawl_interval_minutes: 30,
   },
   {
     company: 'OpenAI',
@@ -40,7 +48,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'playwright',
     official_domain: 'openai.com',
     priority: 10,
-    crawl_interval_minutes: 120,
+    crawl_interval_minutes: 30,
     active: false, // needs Playwright (JS-rendered docs)
     extra: {
       html: {
@@ -58,7 +66,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'github',
     official_domain: 'github.com',
     priority: 40,
-    crawl_interval_minutes: 180,
+    crawl_interval_minutes: 120,
     extra: { github: { owner: 'openai', repo: 'openai-node', mode: 'releases' } },
   },
 
@@ -70,7 +78,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'rss',
     official_domain: 'blog.google',
     priority: 20,
-    crawl_interval_minutes: 60,
+    crawl_interval_minutes: 45,
   },
   {
     company: 'Google DeepMind',
@@ -79,7 +87,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'html',
     official_domain: 'deepmind.google',
     priority: 20,
-    crawl_interval_minutes: 120,
+    crawl_interval_minutes: 45,
     extra: { html: GENERIC },
   },
   {
@@ -89,7 +97,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'html',
     official_domain: 'google.dev',
     priority: 15,
-    crawl_interval_minutes: 120,
+    crawl_interval_minutes: 30,
     extra: {
       html: {
         itemSelector: 'main h2, main h3',
@@ -108,7 +116,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'html',
     official_domain: 'anthropic.com',
     priority: 10,
-    crawl_interval_minutes: 60,
+    crawl_interval_minutes: 30,
     extra: {
       html: {
         itemSelector: 'a[href*="/news/"]',
@@ -124,7 +132,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'html',
     official_domain: 'anthropic.com',
     priority: 30,
-    crawl_interval_minutes: 240,
+    crawl_interval_minutes: 90,
     extra: {
       html: {
         itemSelector: 'a[href*="/research/"]',
@@ -140,7 +148,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'html',
     official_domain: 'claude.com',
     priority: 10,
-    crawl_interval_minutes: 120,
+    crawl_interval_minutes: 30,
     extra: {
       html: {
         itemSelector: 'main h2, main h3',
@@ -157,7 +165,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'github',
     official_domain: 'github.com',
     priority: 15,
-    crawl_interval_minutes: 120,
+    crawl_interval_minutes: 30,
     extra: { github: { owner: 'anthropics', repo: 'claude-code', mode: 'file', path: 'CHANGELOG.md' } },
   },
 
@@ -169,7 +177,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'html',
     official_domain: 'cursor.com',
     priority: 20,
-    crawl_interval_minutes: 120,
+    crawl_interval_minutes: 45,
     extra: {
       html: {
         itemSelector: 'article, [class*="changelog"] article, main section',
@@ -189,7 +197,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'rss',
     official_domain: 'replit.com',
     priority: 40,
-    crawl_interval_minutes: 240,
+    crawl_interval_minutes: 120,
   },
 
   // ---------- GitHub Copilot ----------
@@ -200,7 +208,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'rss',
     official_domain: 'github.blog',
     priority: 20,
-    crawl_interval_minutes: 120,
+    crawl_interval_minutes: 45,
   },
 
   // ---------- Mistral ----------
@@ -211,7 +219,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'html',
     official_domain: 'mistral.ai',
     priority: 25,
-    crawl_interval_minutes: 120,
+    crawl_interval_minutes: 45,
     extra: { html: { ...GENERIC, itemSelector: 'a[href*="/news/"]', titleSelector: 'h2, h3' } },
   },
   {
@@ -221,7 +229,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'html',
     official_domain: 'mistral.ai',
     priority: 30,
-    crawl_interval_minutes: 240,
+    crawl_interval_minutes: 90,
     extra: {
       html: { itemSelector: 'main h2, main h3', titleSelector: 'self', contentSelector: 'p, li' },
     },
@@ -235,7 +243,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'rss',
     official_domain: 'huggingface.co',
     priority: 30,
-    crawl_interval_minutes: 120,
+    crawl_interval_minutes: 90,
   },
 
   // ---------- Vercel ----------
@@ -246,7 +254,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'html',
     official_domain: 'vercel.com',
     priority: 30,
-    crawl_interval_minutes: 180,
+    crawl_interval_minutes: 90,
     extra: {
       html: {
         itemSelector: 'article, main a[href*="/changelog/"]',
@@ -264,7 +272,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'github',
     official_domain: 'github.com',
     priority: 25,
-    crawl_interval_minutes: 180,
+    crawl_interval_minutes: 45,
     extra: { github: { owner: 'vercel', repo: 'ai', mode: 'releases' } },
   },
 
@@ -276,7 +284,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'html',
     official_domain: 'meta.com',
     priority: 35,
-    crawl_interval_minutes: 180,
+    crawl_interval_minutes: 90,
     extra: { html: GENERIC },
   },
 
@@ -288,7 +296,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'html',
     official_domain: 'x.ai',
     priority: 35,
-    crawl_interval_minutes: 180,
+    crawl_interval_minutes: 90,
     extra: { html: { ...GENERIC, itemSelector: 'a[href*="/news/"]', titleSelector: 'h2, h3' } },
   },
 
@@ -300,7 +308,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'html',
     official_domain: 'perplexity.ai',
     priority: 40,
-    crawl_interval_minutes: 240,
+    crawl_interval_minutes: 120,
     extra: { html: GENERIC },
   },
 
@@ -312,7 +320,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'html',
     official_domain: 'cohere.com',
     priority: 40,
-    crawl_interval_minutes: 240,
+    crawl_interval_minutes: 120,
     extra: { html: GENERIC },
   },
 
@@ -324,7 +332,7 @@ export const SEED_SOURCES: UpsertSourceInput[] = [
     source_type: 'html',
     official_domain: 'deepseek.com',
     priority: 35,
-    crawl_interval_minutes: 180,
+    crawl_interval_minutes: 90,
     extra: {
       html: { itemSelector: 'main a[href*="/news/"], article', titleSelector: 'h1, h2, h3', contentSelector: 'p' },
     },
