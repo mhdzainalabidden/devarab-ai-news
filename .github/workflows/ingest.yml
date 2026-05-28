@@ -1,0 +1,45 @@
+name: AI News Ingestion
+
+# Hourly ingestion + a small enrichment batch, running on GitHub's infrastructure
+# so it does not depend on any always-on server or your local machine.
+#
+# NOTE on free minutes: Actions minutes are UNLIMITED on public repos. On private
+# repos the free tier is ~2,000 min/month — hourly runs can approach that, so
+# either make the repo public (no secrets live in the code; they're in Settings →
+# Secrets) or change the cron below to '0 */2 * * *' (every 2 hours).
+on:
+  schedule:
+    - cron: '0 * * * *' # top of every hour (UTC)
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+concurrency:
+  group: ai-news-ingestion
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_SSL: 'true'
+      LLM_PROVIDER: openai
+      LLM_BASE_URL: https://generativelanguage.googleapis.com/v1beta/openai
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_MODEL: gemini-2.5-flash
+      LLM_MAX_ENRICH_PER_RUN: '30'
+      LLM_MIN_INTERVAL_MS: '4500'
+      # Built-in token raises GitHub API limits for the release/changelog fetchers.
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      # Idempotent: applies any new migrations, then ingests, then enriches a
+      # small batch of pending items (paced to stay under free-tier LLM limits).
+      - run: npm run migrate
+      - run: npm run ingest
+      - run: npm run enrich -- 20
