@@ -76,10 +76,41 @@ The workflow in `.github/workflows/ingest.yml` then runs **hourly**: `migrate`
 
 ## 4. Host the API (so the main app can reach it)
 
-The API (`npm start`) is stateless and just needs `DATABASE_URL` + `DATABASE_SSL=true`.
-Options: keep it local for now, run it on any small always-on host, or deploy
-serverless. Because all state lives in Supabase, you can restart/redeploy the API
-anytime with zero data loss — that's your "backup," without a redundant server.
+The API is a **stateless** read service (all state is in Supabase), so hosting is
+simple and you can restart/redeploy anytime with zero data loss.
+
+### Env vars the hosted instance needs
+| Var | Value | Why |
+|---|---|---|
+| `DATABASE_URL` | Supabase session-pooler URI | data |
+| `DATABASE_SSL` | `true` | Supabase requires SSL |
+| `HOST` | `0.0.0.0` | accept external traffic (NOT 127.0.0.1) |
+| `PORT` | (usually injected by the platform) | the app reads it |
+| `SCHEDULER_ENABLED` | **`false`** | **critical** — GitHub Actions already ingests every 15 min; leaving the in-process scheduler on would double-ingest |
+| `CORS_ORIGINS` | e.g. `https://devarab.com` | lock down from `*` in production |
+| `ADMIN_API_KEY` | a strong secret | only if you want the admin endpoints reachable |
+| `LLM_*`, `GITHUB_TOKEN` | optional | only if the host should run ingestion/enrichment itself (it doesn't — GH Actions does) |
+
+> **tsx must exist at runtime.** The app starts via `tsx` (no build step). Most
+> platforms run `npm ci` which installs devDependencies by default — but if a
+> platform sets `NODE_ENV=production` (skipping devDeps), `npm start` fails.
+> Safe fix: move `tsx` into `dependencies` (or add a compile step).
+
+### Options (all have a free tier)
+- **Render — simplest.** New → Web Service → connect the repo. Build `npm ci`,
+  Start `npm start`, health check `/health`, set the env vars above. Gives a
+  public URL like `https://devarab-ai-news.onrender.com`. Caveat: free tier
+  **sleeps after ~15 min idle** (slow first request) — mostly hidden by the
+  devArab app caching responses server-side.
+- **Vercel — same ecosystem as devArab.** Needs a tiny serverless adapter that
+  exports the Fastify app as a handler (no `listen`, scheduler off) + a
+  `vercel.json`. Free hobby tier, co-located with the Next.js app.
+- **Fly.io — no cold starts.** A `Dockerfile` + `fly.toml`; `flyctl launch` /
+  `deploy`. Always-on small VM on the free allowance.
+
+### After hosting
+Point the devArab app at it: set `AI_NEWS_API_BASE_URL=https://<your-host>` in
+the devArab env, and set this API's `CORS_ORIGINS` to the devArab origin(s).
 
 ## Resilience summary
 
