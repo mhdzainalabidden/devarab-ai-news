@@ -209,3 +209,34 @@ describe('GET /health', () => {
     await app.close();
   });
 });
+
+describe('CORS', () => {
+  it('sets an access-control-allow-origin header for cross-origin GETs', async () => {
+    const app = buildServer(fakeDeps());
+    await app.ready();
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/ai-news?limit=1',
+      headers: { origin: 'https://devarab.com' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['access-control-allow-origin']).toBeDefined();
+    await app.close();
+  });
+
+  it('answers CORS preflight (OPTIONS)', async () => {
+    const app = buildServer(fakeDeps());
+    await app.ready();
+    const res = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/ai-news',
+      headers: {
+        origin: 'https://devarab.com',
+        'access-control-request-method': 'GET',
+      },
+    });
+    expect([200, 204]).toContain(res.statusCode);
+    expect(res.headers['access-control-allow-origin']).toBeDefined();
+    await app.close();
+  });
+});

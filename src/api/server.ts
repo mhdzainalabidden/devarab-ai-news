@@ -1,4 +1,6 @@
 import Fastify, { type FastifyInstance, type FastifyError } from 'fastify';
+import cors from '@fastify/cors';
+import { config } from '../config';
 import { logger } from '../logger';
 import { type ApiDeps, defaultApiDeps } from './deps';
 import { registerNewsRoutes } from './routes/news.routes';
@@ -9,6 +11,15 @@ export function buildServer(deps: ApiDeps = defaultApiDeps()): FastifyInstance {
     logger: false,
     trustProxy: true,
     bodyLimit: 1_048_576,
+  });
+
+  // Allow browser (client-side) calls from configured origins. No credentials
+  // are used (admin auth is a header, not cookies), so reflecting origins is safe.
+  app.register(cors, {
+    origin: config.server.corsOrigins,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['content-type', 'x-admin-key'],
+    maxAge: 86_400,
   });
 
   app.get('/health', async () => ({ status: 'ok', time: new Date().toISOString() }));

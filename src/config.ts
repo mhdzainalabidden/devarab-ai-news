@@ -27,6 +27,9 @@ const schema = z.object({
   PORT: intish(3001),
   HOST: z.string().optional().default('0.0.0.0'),
   ADMIN_API_KEY: z.string().min(1).optional(),
+  // Comma-separated allowed origins for browser (client-side) requests.
+  // Empty or "*" = allow any origin (fine for a public read API; no credentials used).
+  CORS_ORIGINS: z.string().optional().default('*'),
 
   // --- Provider-agnostic LLM (any OpenAI-compatible API: OpenRouter, Groq, Gemini, Ollama, …) ---
   LLM_PROVIDER: z.string().optional().default(''), // 'openai' | 'anthropic' | '' (auto-detect)
@@ -147,6 +150,11 @@ export const config = {
     port: env.PORT,
     host: env.HOST,
     adminApiKey: env.ADMIN_API_KEY,
+    // true = reflect any origin; otherwise the explicit allow-list.
+    corsOrigins:
+      env.CORS_ORIGINS.trim() === '' || env.CORS_ORIGINS.trim() === '*'
+        ? true
+        : env.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean),
   },
   llm: resolveLlm(),
   github: {
