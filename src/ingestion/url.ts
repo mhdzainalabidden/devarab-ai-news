@@ -101,3 +101,17 @@ export function resolveUrl(href: string, base: string): string | null {
     return null;
   }
 }
+
+/**
+ * Resolve + validate an image URL: makes it absolute against `base`, requires
+ * http(s), and PRESERVES query params (CDN image URLs are often signed).
+ * Returns null for empty/data:/unparseable/non-http inputs.
+ */
+export function cleanImageUrl(raw: string | null | undefined, base: string): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.startsWith('data:')) return null;
+  const abs = resolveUrl(trimmed, base);
+  if (!abs) return null;
+  return /^https?:\/\//i.test(abs) ? abs : null;
+}

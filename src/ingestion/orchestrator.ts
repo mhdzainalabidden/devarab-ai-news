@@ -201,6 +201,7 @@ export async function runIngestion(
           summary_en: summaryEn,
           content_original: entry.contentOriginal,
           official_source_url: entry.url,
+          image_url: entry.imageUrl,
           source_name: entry.sourceName,
           source_language: entry.sourceLanguage,
           category,

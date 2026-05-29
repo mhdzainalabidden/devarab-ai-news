@@ -12,6 +12,7 @@ export function makeNewsItem(overrides: Partial<NewsItem> = {}): NewsItem {
     summary_en: 'Short English summary.',
     content_original: '<p>raw</p>',
     official_source_url: 'https://openai.com/news/new-model',
+    image_url: 'https://openai.com/img/new-model.png',
     source_name: 'OpenAI · Newsroom',
     source_language: 'en',
     category: 'model',

@@ -41,7 +41,12 @@ export function parseHtmlListing(
       ? item.find(cfg.contentSelector).first().text().trim() || title
       : item.text().replace(/\s+/g, ' ').trim();
 
-    out.push({ title, url, content, publishedAt });
+    // Thumbnail from the listing item only (no extra page fetch).
+    const imgEl = cfg.imageSelector ? item.find(cfg.imageSelector).first() : item.find('img').first();
+    const rawImg = imgEl.attr('src') ?? imgEl.attr('data-src') ?? imgEl.attr('content') ?? '';
+    const imageUrl = rawImg ? resolveUrl(rawImg, base) : null;
+
+    out.push({ title, url, content, publishedAt, imageUrl });
   });
 
   return out;

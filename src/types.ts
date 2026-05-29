@@ -69,6 +69,8 @@ export interface HtmlFetchConfig {
   dateSelector?: string;
   /** CSS selector (relative to item) for the body/excerpt text. */
   contentSelector?: string;
+  /** CSS selector (relative to item) for a thumbnail image (reads src/data-src/content). */
+  imageSelector?: string;
   /** Base URL used to resolve relative hrefs. Defaults to the source_url origin. */
   baseUrl?: string;
 }
@@ -92,6 +94,8 @@ export interface RawEntry {
   content: string;
   /** ISO string or parseable date, if the source exposed one. */
   publishedAt?: string | Date | null;
+  /** Thumbnail/preview image URL, if the feed/listing exposed one. */
+  imageUrl?: string | null;
 }
 
 /** A normalized entry ready for hashing, verification, and enrichment. */
@@ -109,6 +113,8 @@ export interface NormalizedEntry {
   sourceName: string;
   sourceLanguage: SourceLanguage;
   contentHash: string;
+  /** Validated absolute image URL, or null. */
+  imageUrl: string | null;
 }
 
 /** Output of the classification step. */
@@ -142,6 +148,7 @@ export interface NewsItem {
   summary_en: string | null;
   content_original: string;
   official_source_url: string;
+  image_url: string | null;
   source_name: string;
   source_language: SourceLanguage;
   category: Category | null;

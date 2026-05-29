@@ -13,6 +13,7 @@ interface NewsRow {
   summary_en: string | null;
   content_original: string;
   official_source_url: string;
+  image_url: string | null;
   source_name: string;
   source_language: string;
   category: Category | null;
@@ -61,6 +62,7 @@ export interface InsertNewsInput {
   summary_en: string | null;
   content_original: string;
   official_source_url: string;
+  image_url: string | null;
   source_name: string;
   source_language: string;
   category: Category | null;
@@ -82,10 +84,10 @@ export async function insertNews(input: InsertNewsInput): Promise<NewsItem | nul
     `
     INSERT INTO news_items (
       company, product, title_original, title_ar, title_en, summary_ar, summary_en,
-      content_original, official_source_url, source_name, source_language,
+      content_original, official_source_url, image_url, source_name, source_language,
       category, tags, impact_level, verified, published_at, content_hash, status, source_id
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20
     )
     ON CONFLICT (content_hash) DO NOTHING
     RETURNING *
@@ -100,6 +102,7 @@ export async function insertNews(input: InsertNewsInput): Promise<NewsItem | nul
       input.summary_en,
       input.content_original,
       input.official_source_url,
+      input.image_url,
       input.source_name,
       input.source_language,
       input.category,

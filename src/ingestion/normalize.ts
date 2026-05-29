@@ -1,5 +1,5 @@
 import type { NormalizedEntry, RawEntry, Source, Status } from '../types';
-import { canonicalizeUrl } from './url';
+import { canonicalizeUrl, cleanImageUrl } from './url';
 import { htmlToText, normalizeTitle, parseDate, detectLanguage } from './clean';
 import { contentHash } from './hash';
 
@@ -26,6 +26,8 @@ export function normalizeEntry(source: Source, raw: RawEntry): NormalizedEntry {
     sourceName: sourceName(source),
     sourceLanguage: language,
     contentHash: contentHash(url, title, body),
+    // Resolve image relative to the (canonical) item URL; preserve signed query.
+    imageUrl: cleanImageUrl(raw.imageUrl ?? null, url),
   };
 }
 

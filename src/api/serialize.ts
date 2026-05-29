@@ -20,6 +20,7 @@ export interface SerializedNewsItem {
   summary_en: string | null;
   tags: string[];
   official_source_url: string;
+  image_url: string | null;
   source_name: string;
   source_language: string;
   status: string;
@@ -48,6 +49,7 @@ export function serializeNewsItem(item: NewsItem, lang: Lang = 'both'): Serializ
     summary_en: wantEn ? item.summary_en : null,
     tags: item.tags ?? [],
     official_source_url: item.official_source_url,
+    image_url: item.image_url ?? null,
     source_name: item.source_name,
     source_language: item.source_language,
     status: item.status,

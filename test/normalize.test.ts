@@ -10,9 +10,11 @@ describe('normalizeEntry', () => {
       url: 'https://openai.com/news/x/?utm_source=tw',
       content: '<p>Hello <b>world</b></p><script>x()</script>',
       publishedAt: '2026-05-28T10:00:00Z',
+      imageUrl: '/img/x.png',
     });
     expect(entry.title).toBe('New Model Released');
     expect(entry.url).toBe('https://openai.com/news/x');
+    expect(entry.imageUrl).toBe('https://openai.com/img/x.png'); // resolved absolute
     expect(entry.body).toContain('Hello world');
     expect(entry.body).not.toContain('<');
     expect(entry.contentOriginal).toContain('<script>');

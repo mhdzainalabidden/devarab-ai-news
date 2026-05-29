@@ -25,7 +25,7 @@ const DEFAULT_LIMIT = 20;
 
 const SELECT_COLUMNS = `
   id, company, product, title_original, title_ar, title_en,
-  summary_ar, summary_en, content_original, official_source_url, source_name,
+  summary_ar, summary_en, content_original, official_source_url, image_url, source_name,
   source_language, category, tags, impact_level, verified,
   published_at, detected_at, content_hash, status, source_id, created_at, updated_at
 `;
