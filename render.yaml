@@ -1,0 +1,32 @@
+# Render Blueprint — free, always-$0 hosting for the stateless news API.
+# Deploy: render.com → New → Blueprint → connect this repo. Render reads this file.
+# (DB is on Supabase; this only runs the HTTP API. Ingestion runs on GitHub Actions,
+#  so the in-process scheduler is OFF here to avoid double-ingesting.)
+services:
+  - type: web
+    name: devarab-ai-news
+    runtime: node
+    plan: free
+    region: oregon # change to the region nearest your users / Supabase if you like
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Secrets — set these in the Render dashboard (sync:false = not stored in git):
+      - key: DATABASE_URL # Supabase SESSION-pooler URI
+        sync: false
+      - key: ADMIN_API_KEY # optional; only needed if you call the admin endpoints
+        sync: false
+      # Non-secret config:
+      - key: DATABASE_SSL
+        value: "true"
+      - key: HOST
+        value: 0.0.0.0
+      - key: SCHEDULER_ENABLED
+        value: "false" # GitHub Actions handles ingestion; don't double-run it here
+      - key: CORS_ORIGINS
+        value: "*" # tighten to your site in prod, e.g. https://devarab.com
+      - key: LOG_LEVEL
+        value: info
+    # Render injects PORT automatically; the app reads process.env.PORT.
