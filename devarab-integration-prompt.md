@@ -21,9 +21,9 @@ the source's official domain, and stores **Arabic-first** summaries (with a
 secondary English summary). Data lives in Supabase; ingestion runs on a
 schedule. It only exposes JSON — no UI.
 
-- **Base URL (local dev):** `http://127.0.0.1:4010`
-- **Production:** the API will be hosted separately; read its base URL from an
-  env var, never hardcode it.
+- **Production base URL (live):** `https://devarab-ai-news.onrender.com`
+- **Local dev base URL:** `http://127.0.0.1:4010`
+- Read it from an env var (`AI_NEWS_API_BASE_URL`); never hardcode.
 
 ## Connection rules (important)
 
@@ -35,10 +35,16 @@ schedule. It only exposes JSON — no UI.
 2. **Only use the GET endpoints.** The `POST /api/admin/*` endpoints are
    admin-only (require an `x-admin-key` header) — never call them from the app
    or expose that key to the browser.
-3. **Add an env var** `AI_NEWS_API_BASE_URL` (e.g. `http://127.0.0.1:4010` in
-   `.env.local`). All requests go through it.
-4. **Cache + revalidate:** news refreshes roughly every 15 minutes. Use
-   `fetch(url, { next: { revalidate: 600 } })` (10 min) or equivalent ISR.
+3. **Add an env var** `AI_NEWS_API_BASE_URL`. All requests go through it.
+   - production: `https://devarab-ai-news.onrender.com`
+   - local dev: `http://127.0.0.1:4010`
+4. **Cache + revalidate, and expect occasional cold starts.** News refreshes
+   ~every 15 min, so cache: `fetch(url, { next: { revalidate: 600 } })` (10 min)
+   or equivalent ISR. The production host (Render free tier) **sleeps after ~15
+   min idle** — the first request after sleep can take ~50s. Use a generous
+   timeout (e.g. `AbortSignal.timeout(60000)`) and a graceful fallback (return an
+   empty list / cached data, never crash the page). Caching means users rarely
+   hit a cold start.
 
 ## Endpoints to consume
 
