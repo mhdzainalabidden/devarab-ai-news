@@ -13,6 +13,8 @@
     "build": "tsc -p tsconfig.json --noEmit",
     "migrate": "tsx src/db/migrate.ts",
     "seed": "tsx src/db/seed.ts",
+    "seed:catalog": "tsx src/db/seed-catalog.ts",
+    "sources:activate": "tsx src/scripts/activate-sources.ts",
     "ingest": "tsx src/scripts/ingest-once.ts",
     "enrich": "tsx src/scripts/enrich-pending.ts",
     "test": "vitest run",
