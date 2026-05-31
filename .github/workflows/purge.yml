@@ -1,0 +1,52 @@
+name: AI News Retention Purge
+
+# Tiered retention sweep so the Supabase free-tier 500 MB ceiling stays out of
+# reach indefinitely. Runs once a day at 03:00 UTC (low-traffic window).
+#
+# Defaults (override via repo Variables if you want different windows):
+#   ignored/duplicate -> 14 days
+#   low impact        -> 60 days
+#   medium impact     -> 180 days
+#   high impact       -> 365 days
+#   critical          -> never deleted
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run only (do not actually delete)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ai-news-purge
+  cancel-in-progress: false
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_SSL: 'true'
+      # Optional overrides via repo Variables (Settings -> Variables -> Actions).
+      # If unset, the script's built-in defaults apply.
+      RETENTION_IGNORED_DAYS: ${{ vars.RETENTION_IGNORED_DAYS }}
+      RETENTION_LOW_DAYS: ${{ vars.RETENTION_LOW_DAYS }}
+      RETENTION_MEDIUM_DAYS: ${{ vars.RETENTION_MEDIUM_DAYS }}
+      RETENTION_HIGH_DAYS: ${{ vars.RETENTION_HIGH_DAYS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      # Always print the dry-run breakdown first so it shows up in the run log,
+      # even on the apply path. Cheap (COUNTs only) and great for audits.
+      - name: Dry-run preview
+        run: npm run purge:items
+      - name: Apply purge
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.dry_run == false }}
+        run: npm run purge:items -- --yes

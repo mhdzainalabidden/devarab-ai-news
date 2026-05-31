@@ -17,6 +17,7 @@
     "sources:activate": "tsx src/scripts/activate-sources.ts",
     "ingest": "tsx src/scripts/ingest-once.ts",
     "enrich": "tsx src/scripts/enrich-pending.ts",
+    "purge:items": "tsx src/scripts/purge-old.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit"
