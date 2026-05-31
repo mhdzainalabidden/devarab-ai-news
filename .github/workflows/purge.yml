@@ -36,6 +36,9 @@ jobs:
       RETENTION_LOW_DAYS: ${{ vars.RETENTION_LOW_DAYS }}
       RETENTION_MEDIUM_DAYS: ${{ vars.RETENTION_MEDIUM_DAYS }}
       RETENTION_HIGH_DAYS: ${{ vars.RETENTION_HIGH_DAYS }}
+      # Hard safety cap: apply aborts if planned deletions exceed this.
+      # Raise temporarily for a known-large backfill sweep.
+      PURGE_MAX_PER_RUN: ${{ vars.PURGE_MAX_PER_RUN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
