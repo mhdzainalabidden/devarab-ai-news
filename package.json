@@ -18,6 +18,7 @@
     "ingest": "tsx src/scripts/ingest-once.ts",
     "enrich": "tsx src/scripts/enrich-pending.ts",
     "purge:items": "tsx src/scripts/purge-old.ts",
+    "promote:enriched": "tsx src/scripts/promote-enriched.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit"

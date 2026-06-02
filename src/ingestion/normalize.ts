@@ -34,7 +34,17 @@ export function normalizeEntry(source: Source, raw: RawEntry): NormalizedEntry {
 /**
  * Decide the publication status + verified flag for an item (steps 7, 10, 11).
  * Verification is purely domain-based — the LLM never decides verification.
+ *
+ * Domain verification is the project's actual trust floor (the URL host matches
+ * an official_domain on file). LLM confidence is only a "is this total garbage?"
+ * gate, so thresholds are deliberately loose. With stricter thresholds, GitHub
+ * release entries with terse titles (e.g. "v3.38.0") legitimately scored ~0.3-0.5
+ * confidence and got parked in needs_review forever — the floor is domain trust,
+ * not the LLM's certainty about a one-line title.
  */
+const SUMMARY_CONFIDENCE_FLOOR = 0.25;
+const CLASSIFY_CONFIDENCE_FLOOR = 0.2;
+
 export function decideOutcome(params: {
   domainVerified: boolean;
   classifyConfidence: number;
@@ -45,6 +55,8 @@ export function decideOutcome(params: {
     // Off-domain link from an official source: keep for a human to review.
     return { status: 'needs_review', verified: false };
   }
-  const confident = params.summaryConfidence >= 0.6 && params.classifyConfidence >= 0.5;
+  const confident =
+    params.summaryConfidence >= SUMMARY_CONFIDENCE_FLOOR &&
+    params.classifyConfidence >= CLASSIFY_CONFIDENCE_FLOOR;
   return { status: confident ? 'published' : 'needs_review', verified: true };
 }

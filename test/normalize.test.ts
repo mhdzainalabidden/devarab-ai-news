@@ -46,9 +46,18 @@ describe('decideOutcome', () => {
     ).toEqual({ status: 'published', verified: true });
   });
 
-  it('routes low-confidence summaries to needs_review (still verified)', () => {
+  it('publishes domain-verified mid-confidence items (terse GitHub releases etc.)', () => {
+    // Pre-relaxation these would have been parked in needs_review forever;
+    // domain trust is the actual floor, so mid-confidence is fine.
     expect(
-      decideOutcome({ domainVerified: true, classifyConfidence: 0.8, summaryConfidence: 0.2 }),
+      decideOutcome({ domainVerified: true, classifyConfidence: 0.3, summaryConfidence: 0.35 }),
+    ).toEqual({ status: 'published', verified: true });
+  });
+
+  it('routes truly-low-confidence summaries to needs_review (still verified)', () => {
+    // Threshold floor is 0.25; below that we treat the LLM as genuinely confused.
+    expect(
+      decideOutcome({ domainVerified: true, classifyConfidence: 0.8, summaryConfidence: 0.1 }),
     ).toEqual({ status: 'needs_review', verified: true });
   });
 
