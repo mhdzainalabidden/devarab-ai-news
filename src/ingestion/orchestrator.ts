@@ -11,6 +11,7 @@ import { normalizeEntry, decideOutcome } from './normalize';
 import { verifyOfficialDomain } from './url';
 import { robotsChecker, type RobotsChecker } from './robots';
 import { enrich as defaultEnrich, fallbackEnrichment } from '../llm/enrich';
+import { isContentlessVersionTag } from '../llm/heuristics';
 
 export interface IngestionResult {
   jobRunId: number | null;
@@ -128,6 +129,15 @@ export async function runIngestion(
 
         // Step 6: skip duplicates.
         if (await deps.existsByHash(entry.contentHash)) {
+          result.itemsSkipped += 1;
+          continue;
+        }
+
+        // Step 6.5: drop contentless version/build/date tag releases ("v0.111.0",
+        // "b9724", "aws-sdk: v0.5.0"). They carry no narrative, so they're not
+        // persisted — keeping needs_review clean, the DB lean, and LLM spend at
+        // zero. The dedup hash is deterministic, so they re-filter cheaply each run.
+        if (isContentlessVersionTag(entry.title, entry.body)) {
           result.itemsSkipped += 1;
           continue;
         }

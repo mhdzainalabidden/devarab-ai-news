@@ -202,6 +202,31 @@ export const CATALOG_SOURCES: UpsertSourceInput[] = [
   gh('Groq', 'groq', 'groq-typescript', { product: 'TypeScript SDK' }),
 
   // ============================================================
+  // EMERGING / ASIA FRONTIER LABS (model labs the base seed misses)
+  // ============================================================
+  // Moonshot AI / Kimi. The model repos (Kimi-K2 etc.) don't cut GitHub
+  // Releases, so launches surface on the platform blog. kimi-cli — the terminal
+  // coding agent — DOES ship releases regularly, so it's the reliable feed.
+  html('Moonshot AI', 'Kimi Blog', 'https://platform.kimi.ai/blog', 'kimi.ai', {
+    priority: 30,
+    interval: 90,
+    selectors: { itemSelector: 'a[href*="/blog/"]' },
+  }),
+  gh('Moonshot AI', 'MoonshotAI', 'kimi-cli', { product: 'Kimi CLI', priority: 35, interval: 90 }),
+
+  // Z.ai (formerly Zhipu AI) — GLM family. The z.ai/blog index 404s (only
+  // individual /blog/<slug> posts exist), so we track the official SDK instead:
+  // its release notes announce new GLM models (e.g. glm-5.1 / glm-5.2).
+  gh('Zhipu AI', 'zai-org', 'z-ai-sdk-python', { product: 'Z.ai Python SDK', priority: 30, interval: 90 }),
+
+  // MiniMax — model + media APIs. News at minimax.io/news/<slug>.
+  html('MiniMax', 'News', 'https://www.minimax.io/news', 'minimax.io', {
+    priority: 30,
+    interval: 90,
+    selectors: { itemSelector: 'a[href*="/news/"]' },
+  }),
+
+  // ============================================================
   // HUGGING FACE ECOSYSTEM (very release-active)
   // ============================================================
   gh('Hugging Face', 'huggingface', 'transformers', { product: 'Transformers', priority: 35, interval: 90 }),
@@ -259,7 +284,10 @@ export const CATALOG_SOURCES: UpsertSourceInput[] = [
   // INFERENCE / SERVING / LOCAL RUNTIMES
   // ============================================================
   gh('vLLM', 'vllm-project', 'vllm', { product: 'vLLM', priority: 40 }),
-  gh('llama.cpp', 'ggml-org', 'llama.cpp', { product: 'llama.cpp', priority: 40 }),
+  // llama.cpp tags many builds per day (bare "bNNNN" tags); crawl it slowly so it
+  // doesn't dominate the feed or burn GitHub rate limit. The contentless-tag
+  // filter drops the empty ones too.
+  gh('llama.cpp', 'ggml-org', 'llama.cpp', { product: 'llama.cpp', priority: 40, interval: 720 }),
   gh('Ollama', 'ollama', 'ollama', { product: 'Ollama', priority: 35, interval: 90 }),
   gh('SGLang', 'sgl-project', 'sglang', { product: 'SGLang' }),
   gh('MLC LLM', 'mlc-ai', 'mlc-llm', { product: 'MLC LLM' }),

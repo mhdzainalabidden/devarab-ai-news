@@ -92,3 +92,62 @@ export function classifyHeuristic(title: string, body: string): {
     tags: extractTagsHeuristic(text),
   };
 }
+
+// ── Contentless release filter ─────────────────────────────────────────────
+// GitHub release feeds emit a flood of version-bump tags with no narrative —
+// "v0.111.0", "b9724", "aws-sdk: v0.5.0", "Release 2026.1.26", "2025-06-18".
+// They carry no reader value and otherwise pile up in needs_review. We drop them
+// at ingestion (before any LLM spend). The github fetcher falls back to the tag
+// name when a release body is empty, so a contentless body ≈ the bare tag — that
+// is exactly the signal that there is nothing to summarize.
+
+// One "word" that is a version / build / date identifier: contains a digit and
+// only version/slug punctuation (v0.111.0, b9724, @ai-sdk/vue@4.0.0-beta.182).
+const VERSION_WORD = /^[@\w./+-]*\d[@\w./+-]*$/;
+
+// Release-noise words that may sit beside a version without adding meaning.
+const RELEASE_NOISE = new Set([
+  'release', 'releases', 'cli', 'sdk', 'ui', 'core', 'version', 'build',
+  'pre', 'rc', 'alpha', 'beta', 'preview', 'nightly', 'dev', 'stable',
+  'patch', 'hotfix', 'final',
+]);
+
+// Package slugs that prefix a version: "aws-sdk", "bedrock-sdk", "vertex-sdk".
+const SLUG_NOISE = /-(?:sdk|cli|js|ts|py|api|ui|core|server|client|node|express|hono|fastify)$/i;
+
+/** A title with no narrative — only a version/build/date tag, optionally with a
+ *  package slug or release-noise word (e.g. "v0.111.0", "aws-sdk: v0.5.0",
+ *  "Release 2026.1.26"). Real headlines have several narrative words and fail. */
+export function isVersionTagTitle(title: string): boolean {
+  const words = title.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0 || words.length > 4) return false;
+  let sawVersion = false;
+  for (const raw of words) {
+    const w = raw.replace(/^[([{]+/, '').replace(/[:•·,)\]}]+$/g, '');
+    if (w === '') continue;
+    if (VERSION_WORD.test(w)) {
+      sawVersion = true;
+      continue;
+    }
+    const lower = w.toLowerCase();
+    if (RELEASE_NOISE.has(lower) || SLUG_NOISE.test(lower)) continue;
+    return false; // a genuine narrative word — keep the item
+  }
+  return sawVersion;
+}
+
+/** A release body with no real notes: empty, or only links / "Full Changelog". */
+export function isContentlessBody(body: string): boolean {
+  const stripped = (body ?? '')
+    .replace(/full changelog:?.*/gis, '')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/[*#`>_~\-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return stripped.length < 30;
+}
+
+/** True when an entry is a contentless version/build/date release to drop. */
+export function isContentlessVersionTag(title: string, body: string): boolean {
+  return isVersionTagTitle(title) && isContentlessBody(body);
+}

@@ -64,8 +64,25 @@ export interface UpsertSourceInput {
   extra?: SourceExtra | null;
 }
 
+export interface UpsertSourceOptions {
+  /**
+   * When true, an existing row's `active` flag is preserved on conflict (only
+   * brand-new rows take the input's `active`). Catalog seeding uses this so that
+   * re-running `seed:catalog` (whose rows are all active:false) never silently
+   * deactivates sources the operator has turned on. Defaults to false, which
+   * keeps the prior behavior of writing EXCLUDED.active.
+   */
+  preserveActiveOnConflict?: boolean;
+}
+
 /** Insert a source, or update it if a row with the same source_url already exists. */
-export async function upsertSource(input: UpsertSourceInput): Promise<Source> {
+export async function upsertSource(
+  input: UpsertSourceInput,
+  opts: UpsertSourceOptions = {},
+): Promise<Source> {
+  const activeAssign = opts.preserveActiveOnConflict
+    ? 'active = sources.active'
+    : 'active = EXCLUDED.active';
   const { rows } = await query<SourceRow>(
     `
     INSERT INTO sources
@@ -78,7 +95,7 @@ export async function upsertSource(input: UpsertSourceInput): Promise<Source> {
       official_domain = EXCLUDED.official_domain,
       priority = EXCLUDED.priority,
       crawl_interval_minutes = EXCLUDED.crawl_interval_minutes,
-      active = EXCLUDED.active,
+      ${activeAssign},
       extra = EXCLUDED.extra,
       updated_at = now()
     RETURNING *

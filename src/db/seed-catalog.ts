@@ -8,13 +8,15 @@ import { logger } from '../logger';
 /**
  * Loads the EXTENDED catalog (src/db/seeds/sources.catalog.ts) into the
  * `sources` table as INACTIVE rows. Nothing is crawled until you activate it
- * (see `npm run sources:activate`). Re-runnable: upsert keys on source_url, and
- * catalog URLs don't overlap the base seed, so this never flips a base source.
+ * (see `npm run sources:activate`). Re-runnable and SAFE: catalog rows are all
+ * active:false, but we upsert with `preserveActiveOnConflict` so re-seeding only
+ * inserts new rows / refreshes metadata — it never turns OFF a source you've
+ * already activated. New rows still land inactive.
  */
 export async function seedCatalog(): Promise<{ count: number }> {
   let count = 0;
   for (const src of CATALOG_SOURCES) {
-    await upsertSource(src);
+    await upsertSource(src, { preserveActiveOnConflict: true });
     count += 1;
   }
   return { count };
