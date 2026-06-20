@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildNewsListQuery,
+  buildNewsCountQuery,
   resolveSince,
   clampLimit,
 } from '../src/repositories/newsQuery';
@@ -72,5 +73,46 @@ describe('buildNewsListQuery', () => {
     const { sql } = buildNewsListQuery({ category: 'bogus' as never, impact: 'huge' as never });
     expect(sql).not.toContain('category =');
     expect(sql).not.toContain('impact_level =');
+  });
+
+  it('orders ascending when sort=oldest', () => {
+    const { sql } = buildNewsListQuery({ sort: 'oldest' });
+    expect(sql).toContain('ORDER BY detected_at ASC NULLS LAST, id ASC');
+  });
+
+  it('orders by published_at when date_field=published', () => {
+    const { sql } = buildNewsListQuery({ dateField: 'published' });
+    expect(sql).toContain('ORDER BY published_at DESC NULLS LAST, id DESC');
+  });
+
+  it('filters the selected date field for since and to (range)', () => {
+    const now = new Date('2026-05-28T12:00:00Z');
+    const { sql, values } = buildNewsListQuery(
+      { dateField: 'published', since: '7d', to: '2026-05-27T00:00:00Z' },
+      now,
+    );
+    expect(sql).toContain('published_at >=');
+    expect(sql).toContain('published_at <=');
+    expect(values).toContain('2026-05-21T12:00:00.000Z'); // now - 7d
+    expect(values).toContain('2026-05-27T00:00:00.000Z'); // explicit `to`
+  });
+
+  it('treats from as an alias for since (from wins)', () => {
+    const now = new Date('2026-05-28T12:00:00Z');
+    const { values } = buildNewsListQuery({ since: '7d', from: '24h' }, now);
+    expect(values).toContain('2026-05-27T12:00:00.000Z'); // now - 24h (from)
+    expect(values).not.toContain('2026-05-21T12:00:00.000Z'); // not 7d
+  });
+});
+
+describe('buildNewsCountQuery', () => {
+  it('counts with the same WHERE but no order/limit/offset', () => {
+    const { sql, values } = buildNewsCountQuery({ publishedOnly: true, company: 'OpenAI' });
+    expect(sql).toContain('SELECT COUNT(*)::int AS total');
+    expect(sql).not.toContain('ORDER BY');
+    expect(sql).not.toContain('LIMIT');
+    expect(sql).toContain('status = $1');
+    expect(values).toContain('published');
+    expect(values).toContain('OpenAI');
   });
 });

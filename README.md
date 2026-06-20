@@ -119,22 +119,43 @@ items to `status = needs_review` instead of `published`.
 
 ## API
 
-Base path: `/api/ai-news`. All list responses are sorted by `detected_at` desc.
+Base path: `/api/ai-news`. List feeds default to **newest-first**.
 
 ### `GET /api/ai-news`
-Latest news with filters.
+Public feed with filters, configurable ordering, and pagination.
 
 | query param | values | notes |
 |---|---|---|
 | `lang` | `ar` \| `en` \| `both` | default `both` |
 | `limit` | 1–100 | default 20 |
+| `offset` | ≥ 0 | default 0 |
 | `company` | e.g. `OpenAI` | case-insensitive |
 | `product` | e.g. `API` | case-insensitive |
 | `category` | `model` `api` `coding` `security` `pricing` `research` `tool` `sdk` `product` `company` `deprecation` | |
-| `since` | `24h` \| `7d` \| `30m` \| ISO timestamp | filters on `detected_at` |
+| `status` | `published` | restricts to published rows; internal statuses are never exposed |
 | `verified` | `true` \| `false` | |
 | `impact` | `low` \| `medium` \| `high` \| `critical` | |
 | `tag` | e.g. `gpt-5` | matches the `tags` array |
+| `sort` | `recent` \| `oldest` | default `recent` (newest-first) on the active date field |
+| `date_field` | `detected` \| `published` | which date column ordering + date filters use. `detected` (default) = ingest time ("what's new in the feed"); `published` = article publication date |
+| `since` / `window` | `24h` \| `7d` \| `30m` \| ISO timestamp | lower bound on the active date field (`window` is an alias) |
+| `from` | ISO timestamp \| relative | explicit lower bound; alias for `since` (wins if both set) |
+| `to` | ISO timestamp \| relative | upper bound on the active date field |
+
+Response (additive — `count`/`items` unchanged):
+
+```jsonc
+{
+  "lang": "both",
+  "count": 20,          // items on this page
+  "total": 137,         // rows matching the filters
+  "limit": 20,
+  "offset": 0,
+  "has_more": true,
+  "next_offset": 20,    // null when has_more is false
+  "items": [ /* ... */ ]
+}
+```
 
 ### `GET /api/ai-news/latest`
 Verified, published items only. Accepts `lang`, `company`, `category`, `limit`.

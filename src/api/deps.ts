@@ -12,6 +12,7 @@ import { runIngestion } from '../ingestion/orchestrator';
 /** Data + action dependencies the HTTP routes need. Injectable for testing. */
 export interface ApiDeps {
   listNews: (filters: NewsListFilters) => Promise<NewsItem[]>;
+  countNews: (filters: NewsListFilters) => Promise<number>;
   getNewsById: (id: number) => Promise<NewsItem | null>;
   digestItems: (sinceIso: string) => Promise<NewsItem[]>;
   companiesOverview: () => Promise<CompanyOverview[]>;
@@ -24,6 +25,7 @@ export interface ApiDeps {
 export function defaultApiDeps(): ApiDeps {
   return {
     listNews: (filters) => newsRepo.listNews(filters),
+    countNews: (filters) => newsRepo.countNews(filters),
     getNewsById: (id) => newsRepo.getNewsById(id),
     digestItems: (sinceIso) => newsRepo.digestItems(sinceIso),
     companiesOverview: () => sourcesRepo.companiesOverview(),

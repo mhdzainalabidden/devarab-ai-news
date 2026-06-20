@@ -1,6 +1,6 @@
 import { query } from '../db/pool';
 import type { Category, ImpactLevel, NewsItem, Status } from '../types';
-import { buildNewsListQuery, type NewsListFilters } from './newsQuery';
+import { buildNewsListQuery, buildNewsCountQuery, type NewsListFilters } from './newsQuery';
 
 interface NewsRow {
   id: number;
@@ -45,6 +45,13 @@ export async function listNews(filters: NewsListFilters): Promise<NewsItem[]> {
   const { sql, values } = buildNewsListQuery(filters);
   const { rows } = await query<NewsRow>(sql, values);
   return rows.map(map);
+}
+
+/** Total rows matching the same filters as `listNews` (ignores limit/offset). */
+export async function countNews(filters: NewsListFilters): Promise<number> {
+  const { sql, values } = buildNewsCountQuery(filters);
+  const { rows } = await query<{ total: number }>(sql, values);
+  return rows[0]?.total ?? 0;
 }
 
 export async function getNewsById(id: number): Promise<NewsItem | null> {

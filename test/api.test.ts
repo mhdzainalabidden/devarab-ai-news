@@ -7,6 +7,7 @@ import { makeNewsItem } from './fixtures';
 function fakeDeps(over: Partial<ApiDeps> = {}): ApiDeps {
   return {
     listNews: vi.fn(async () => [makeNewsItem()]),
+    countNews: vi.fn(async () => 1),
     getNewsById: vi.fn(async (id: number) => (id === 1 ? makeNewsItem() : null)),
     digestItems: vi.fn(async () => [
       makeNewsItem({ id: 1, company: 'OpenAI', category: 'model' }),
@@ -69,6 +70,49 @@ describe('GET /api/ai-news', () => {
     const app = buildServer(fakeDeps({ listNews }));
     await app.inject({ method: 'GET', url: '/api/ai-news?category=bogus' });
     expect(listNews).toHaveBeenCalledWith(expect.objectContaining({ category: undefined }));
+    await app.close();
+  });
+
+  it('maps status=published, sort, date_field, and window into filters', async () => {
+    const listNews = vi.fn(async () => [makeNewsItem()]);
+    const app = buildServer(fakeDeps({ listNews }));
+    await app.inject({
+      method: 'GET',
+      url: '/api/ai-news?status=published&sort=oldest&date_field=published&window=7d',
+    });
+    expect(listNews).toHaveBeenCalledWith(
+      expect.objectContaining({
+        publishedOnly: true,
+        sort: 'oldest',
+        dateField: 'published',
+        since: '7d',
+      }),
+    );
+    await app.close();
+  });
+
+  it('returns pagination metadata derived from total', async () => {
+    const listNews = vi.fn(async () => [makeNewsItem({ id: 1 }), makeNewsItem({ id: 2 })]);
+    const countNews = vi.fn(async () => 5);
+    const app = buildServer(fakeDeps({ listNews, countNews }));
+    const res = await app.inject({ method: 'GET', url: '/api/ai-news?limit=2&offset=0' });
+    const body = res.json();
+    expect(body.total).toBe(5);
+    expect(body.count).toBe(2);
+    expect(body.limit).toBe(2);
+    expect(body.has_more).toBe(true);
+    expect(body.next_offset).toBe(2);
+    await app.close();
+  });
+
+  it('reports has_more=false on the last page', async () => {
+    const listNews = vi.fn(async () => [makeNewsItem({ id: 5 })]);
+    const countNews = vi.fn(async () => 5);
+    const app = buildServer(fakeDeps({ listNews, countNews }));
+    const res = await app.inject({ method: 'GET', url: '/api/ai-news?limit=2&offset=4' });
+    const body = res.json();
+    expect(body.has_more).toBe(false);
+    expect(body.next_offset).toBeNull();
     await app.close();
   });
 });

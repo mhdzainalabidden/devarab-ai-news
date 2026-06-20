@@ -2,7 +2,12 @@ import type { FastifyInstance } from 'fastify';
 import type { ApiDeps } from '../deps';
 import { CATEGORIES, IMPACT_LEVELS, type Category, type ImpactLevel } from '../../types';
 import { parseLang, serializeNewsItem, buildDigest } from '../serialize';
-import { resolveSince } from '../../repositories/newsQuery';
+import {
+  resolveSince,
+  clampLimit,
+  type DateField,
+  type SortOrder,
+} from '../../repositories/newsQuery';
 
 function asString(v: unknown): string | undefined {
   if (Array.isArray(v)) v = v[0];
@@ -32,28 +37,61 @@ function asInt(v: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+function asSort(v: unknown): SortOrder | undefined {
+  const s = asString(v)?.toLowerCase();
+  return s === 'oldest' || s === 'recent' ? s : undefined;
+}
+
+function asDateField(v: unknown): DateField | undefined {
+  const s = asString(v)?.toLowerCase();
+  return s === 'published' || s === 'detected' ? s : undefined;
+}
+
 export function registerNewsRoutes(app: FastifyInstance, deps: ApiDeps): void {
-  // GET /api/ai-news — latest news with filters, sorted by detected_at desc.
+  // GET /api/ai-news — public feed with filters + pagination.
+  // Ordering: defaults to newest-first on the selected date field; `sort=oldest`
+  // flips it. Date field: `date_field=detected` (default — ingest time, "what's
+  // new in the feed") or `date_field=published` (article publication date);
+  // `since`/`from`/`to`/`window` all filter on that field. Status: `status=published`
+  // restricts to published rows (internal statuses are never exposed).
   app.get('/api/ai-news', async (req) => {
     const q = req.query as Record<string, unknown>;
     const lang = parseLang(asString(q.lang));
-    const verified = asBool(q.verified);
 
-    const items = await deps.listNews({
+    // Resolve pagination once so the response can echo the clamped values.
+    const limit = clampLimit(asInt(q.limit));
+    const offset = Math.max(0, Math.floor(asInt(q.offset) ?? 0));
+
+    const filters = {
       company: asString(q.company),
       product: asString(q.product),
       category: asCategory(q.category),
       impact: asImpact(q.impact),
       tag: asString(q.tag),
-      since: asString(q.since),
-      verified,
-      limit: asInt(q.limit),
-      offset: asInt(q.offset),
-    });
+      // `window` is an alias for `since` (relative window); `from`/`to` bound a range.
+      since: asString(q.since) ?? asString(q.window),
+      from: asString(q.from),
+      to: asString(q.to),
+      dateField: asDateField(q.date_field),
+      sort: asSort(q.sort),
+      verified: asBool(q.verified),
+      // Only `published` is honored publicly; other statuses stay internal.
+      publishedOnly: asString(q.status)?.toLowerCase() === 'published' || undefined,
+      limit,
+      offset,
+    };
+
+    const [items, total] = await Promise.all([deps.listNews(filters), deps.countNews(filters)]);
+    const hasMore = offset + items.length < total;
 
     return {
       lang,
       count: items.length,
+      total,
+      limit,
+      offset,
+      has_more: hasMore,
+      next_offset: hasMore ? offset + items.length : null,
       items: items.map((i) => serializeNewsItem(i, lang)),
     };
   });
