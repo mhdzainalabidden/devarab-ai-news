@@ -1,3 +1,5 @@
+<img width="1600" height="835" alt="image" src="https://github.com/user-attachments/assets/9e57f192-4760-4cbe-87dd-b1ec860c03ca" />
+
 # Dev Arab — AI News API Subsystem
 
 A backend service that tracks **official / primary** AI sources, verifies updates,
